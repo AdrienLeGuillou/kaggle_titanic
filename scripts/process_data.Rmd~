@@ -1,0 +1,33 @@
+## Process the data
+
+```{r processdata}
+process_data <- function(update = FALSE){
+  #' Process the raw data and store it in "data/processed/datas.Rda"
+  #'
+  #' @description function to be completed for each project.
+  #' It's purpose is to process the raw data with R and store it into a generic datas.Rda file.
+  #' Only the heavy lifting is done here. The objective is to gain time when you run the analysis.
+  #'
+  #' The function is launch in the setup chunk. It evaluate weather the data have been processed
+  #' and stored already to gain time.
+  #'
+  #' You can force the function to regenerate the datas.Rda from the raw data by setting
+  #' the update parameter to TRUE
+  #'
+  #' @param update if true will recreate the process from raw even if the datas.Rda is present
+
+  if (update == TRUE | file.exists("data/processed/datas.Rda") == FALSE) {
+    # Put the data processing here
+
+  }
+
+  data <- TRUE
+  save(data, file = "data/processed/datas.Rda")
+
+  # clean workspace before exiting
+  rm(list = ls())
+}
+```
+
+
+

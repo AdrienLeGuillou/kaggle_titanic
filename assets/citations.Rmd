@@ -1,0 +1,5 @@
+---
+nocite: |
+  @readr, @stringr, @bibtex, @kableExtra, @knitr, @rmarkdown, @stats, @graphics, @grDevices, @utils, @datasets, @methods, @base
+...
+
