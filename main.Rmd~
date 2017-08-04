@@ -17,11 +17,6 @@ bibliography: references.bib
 ```
 
 ```{r init, include=FALSE}
-### Generic chunk for preparing everything
-
-# Load all the required packages
-#source("scripts/packages.R")
-
 # set the default knitr and kable options
 opts_knit$set(root.dir = getwd())
 options(knitr.table.format = "html")
@@ -31,13 +26,17 @@ source("functions/make_biblio.R")
 make_biblio()
 
 # Process and save the raw data if not done already
-#source("scripts/process_data.R")
 process_data()
 
 # Load the processed data
 load("data/processed/datas.Rda")
 ```
 
+# Data description
+
+```{r data_description}
+plot(test$Age)
+```
 
 ```{r child="assets/citations.Rmd" }
 ```

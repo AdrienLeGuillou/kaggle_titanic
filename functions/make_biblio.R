@@ -1,5 +1,9 @@
 make_biblio <- function() {
-  required_packages <- (.packages())
+  base <- c("stats", "graphics", "grDevices", "utils", "datasets", "methods")
+
+  required_packages <- 
+    (.packages())[!(.packages()) %in% base] %>%
+    sort()
 
   write.bib(required_packages, file = "assets/packages")
 

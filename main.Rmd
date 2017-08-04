@@ -32,6 +32,11 @@ process_data()
 load("data/processed/datas.Rda")
 ```
 
+# Data description
+
+```{r data_description}
+plot(test$Age)
+```
 
 ```{r child="assets/citations.Rmd" }
 ```
