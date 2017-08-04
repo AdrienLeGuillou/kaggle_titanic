@@ -3,12 +3,16 @@
 ```{r process_data}
 process_data <- function(update = FALSE){
   if (update == TRUE | file.exists("data/processed/datas.Rda") == FALSE) {
-    # Put the data processing here
-    train <- read_csv("data/raw/train.csv")
-    test <- read_csv("data/raw/test.csv")
-    gender_submission <- read_csv("data/raw/gender_submission.csv")
+    # store all data in one data frame for easing the feature engineering
+    datas <- read_csv("data/raw/train.csv") %>%
+      mutate(train = TRUE)
     
-    save(train, test, gender_submission, file = "data/processed/datas.Rda")
+    datas <- read_csv("data/raw/test.csv") %>%
+      mutate(train = FALSE,
+             Survived = NA) %>%
+      bind_rows(datas)
+
+    save(datas, file = "data/processed/datas.Rda")
   }
 
   # clean workspace before exiting

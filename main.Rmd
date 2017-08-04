@@ -26,18 +26,19 @@ source("functions/make_biblio.R")
 make_biblio()
 
 # Process and save the raw data if not done already
-process_data()
+process_data(T)
 
 # Load the processed data
 load("data/processed/datas.Rda")
 ```
 
-# Data description
-
-```{r data_description}
-plot(test$Age)
+```{r child="rmds/feature_engineering.Rmd"}
 ```
 
+
+<!-- 
+------------------------- biliography ---------------------------------------- 
+-->
 ```{r child="assets/citations.Rmd" }
 ```
 

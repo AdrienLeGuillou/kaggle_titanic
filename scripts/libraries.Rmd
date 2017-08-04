@@ -5,6 +5,9 @@
 library("knitr")
 library("kableExtra")
 library("bibtex")
+library("tidyverse")
+library("forcats")
+library("lubridate")
 library("stringr")
-library("readr")
+library("ggpubr")
 ```
