@@ -1,5 +1,5 @@
 ---
 nocite: |
-  @base, @bibtex, @bindrcpp, @dplyr, @forcats, @ggplot2, @ggpubr, @kableExtra, @knitr, @lubridate, @magrittr, @nvimcom, @purrr, @readr, @rmarkdown, @stringr, @tibble, @tidyr, @tidyverse
+  @base, @bibtex, @dplyr, @forcats, @ggplot2, @ggpubr, @kableExtra, @knitr, @lubridate, @magrittr, @nvimcom, @purrr, @readr, @stringr, @tibble, @tidyr, @tidyverse
 ...
 
