@@ -36,9 +36,7 @@ load("data/processed/datas.Rda")
 ```
 
 
-<!-- 
-------------------------- biliography ---------------------------------------- 
--->
+<!-- biliography -->
 ```{r child="assets/citations.Rmd" }
 ```
 
