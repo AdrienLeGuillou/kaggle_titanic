@@ -191,6 +191,11 @@ Version: 1.4.3
 Hash: cd53ef4cf29dc59ce3f8c5c1af735fd1
 Requires: iterators
 
+Package: gbm
+Source: CRAN
+Version: 2.1.3
+Hash: fd26a027100111d924a4a8bc319c6968
+
 Package: ggmosaic
 Source: CRAN
 Version: 0.1.2
