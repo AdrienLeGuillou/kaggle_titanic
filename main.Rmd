@@ -353,16 +353,17 @@ test <- dataset %>%
   select(-train)
 ```
 
-## Initiate parallele
-
-```{r parallel}
-cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
-registerDoParallel(cluster)
-```
-
 ## Random forest
 
 ```{r random-forest}
+######################### mettre les imputations en dehors
+
+start_time <- Sys.time()
+
+# initiate the multicore
+cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
+registerDoParallel(cluster)
+
 train$age[is.na(train$age)] <- median(train$age, na.rm = TRUE)
 model <- train(factor(survived) ~ ticket_class + 
                                   ticket_fare + 
@@ -375,13 +376,22 @@ model <- train(factor(survived) ~ ticket_class +
                data = train, 
                method = "rf",
                tuneLength = 5,
+	       tuneGrid = data.frame(mtry = c(2, 4, 8, 12, 16, 20)),
                #preProcess = "medianImpute",
                trControl = trainControl(
                  method = "cv", number = 10,
                  allowParallel = TRUE,
                #  summaryFunction = twoClassSummary,
                #  classProbs = TRUE,
-                 repeats = 5, verboseIter = TRUE))
+                 repeats = 5, verboseIter = FALSE))
+
+# stop multicore
+stopCluster(cluster)
+registerDoSEQ()
+
+end_time <- Sys.time()
+
+duration <- end_time - start_time
 
 model 
 
@@ -399,13 +409,6 @@ test$ticket_fare[is.na(test$ticket_fare)] <- median(test$ticket_fare, na.rm = TR
 test_p <- predict(model, test, type = "raw")
 
 confusionMatrix(test_p, test_ans$survived)
-```
-
-## Stop parallel
-
-```{r parallel_close}
-stopCluster(cluster)
-registerDoSEQ()
 ```
 
 <!-- biliography -->
