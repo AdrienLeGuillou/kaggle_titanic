@@ -9,6 +9,17 @@ Source: CRAN
 Version: 1.62.0-1
 Hash: 14dfb3e8ffe20996118306ff4de1fab2
 
+Package: MatrixModels
+Source: CRAN
+Version: 0.4-1
+Hash: 60a5c75e57aae4a0ce76cb7422939aaf
+
+Package: ModelMetrics
+Source: CRAN
+Version: 1.1.0
+Hash: 325ea8f510f9e8c2e7e774b78b0f376a
+Requires: Rcpp
+
 Package: NHANES
 Source: CRAN
 Version: 2.1.0
@@ -28,6 +39,17 @@ Package: Rcpp
 Source: CRAN
 Version: 0.12.12
 Hash: 8b3d5ebb9a9a4ab5c86b3a81b0cfb774
+
+Package: RcppEigen
+Source: CRAN
+Version: 0.3.3.3.0
+Hash: d2dba1ec87fb5d2c38791848e9a78ade
+Requires: Rcpp
+
+Package: SparseM
+Source: CRAN
+Version: 1.77
+Hash: 08f1f60e1038957030bcd9f4a58d22d8
 
 Package: assertthat
 Source: CRAN
@@ -77,6 +99,18 @@ Source: CRAN
 Version: 1.17.1
 Hash: 97cb6f6293cd18d17df77a6383cc6763
 Requires: bitops
+
+Package: car
+Source: CRAN
+Version: 2.1-5
+Hash: 3c9e1eac57d1c381f7ce9562895eb33b
+Requires: pbkrtest, quantreg
+
+Package: caret
+Source: CRAN
+Version: 6.0-76
+Hash: 930439f3411f3a5af6fbdf1f8953657c
+Requires: ModelMetrics, car, foreach, ggplot2, plyr, reshape2
 
 Package: cellranger
 Source: CRAN
@@ -128,6 +162,11 @@ Hash: a4e8be0458f97a40806bcced654de815
 Requires: BH, R6, Rcpp, assertthat, bindrcpp, glue, magrittr,
     pkgconfig, plogr, rlang, tibble
 
+Package: e1071
+Source: CRAN
+Version: 1.6-8
+Hash: 20320ec66d4dc608654769145b7c624a
+
 Package: evaluate
 Source: CRAN
 Version: 0.10.1
@@ -139,6 +178,12 @@ Source: CRAN
 Version: 0.2.0
 Hash: e5a3b0b96a39f5581467b0c6366f7408
 Requires: magrittr, tibble
+
+Package: foreach
+Source: CRAN
+Version: 1.4.3
+Hash: cd53ef4cf29dc59ce3f8c5c1af735fd1
+Requires: iterators
 
 Package: ggmosaic
 Source: CRAN
@@ -239,6 +284,11 @@ Version: 1.2.1
 Hash: 7de1f8f760441881804af7c1ff324340
 Requires: R6, curl, jsonlite, mime, openssl
 
+Package: iterators
+Source: CRAN
+Version: 1.0.8
+Hash: 488b93c2a4166db0d15f1e8d882cb1d4
+
 Package: jsonlite
 Source: CRAN
 Version: 1.5
@@ -266,6 +316,12 @@ Source: CRAN
 Version: 0.2.0
 Hash: 3d6e7608e65bbf5cb170dab1e3c9ed8b
 
+Package: lme4
+Source: CRAN
+Version: 1.1-13
+Hash: 025fc4efef1b570ec0a843d750a58e01
+Requires: Rcpp, RcppEigen, minqa, nloptr
+
 Package: lubridate
 Source: CRAN
 Version: 1.6.0
@@ -288,6 +344,12 @@ Source: CRAN
 Version: 0.5
 Hash: 463550cf44fb6f0a2359368f42eebe62
 
+Package: minqa
+Source: CRAN
+Version: 1.2.4
+Hash: c0b06acb19de5b852d625f10ed40d0da
+Requires: Rcpp
+
 Package: mnormt
 Source: CRAN
 Version: 1.5-5
@@ -305,6 +367,11 @@ Version: 0.4.3
 Hash: f96d896947fcaf9b6d0074002e9f4f9d
 Requires: colorspace
 
+Package: nloptr
+Source: CRAN
+Version: 1.0.4
+Hash: 8053df240a4635aeb54fc68c6de67709
+
 Package: openssl
 Source: CRAN
 Version: 0.9.6
@@ -314,6 +381,12 @@ Package: packrat
 Source: CRAN
 Version: 0.4.8-1
 Hash: 6ad605ba7b4b476d84be6632393f5765
+
+Package: pbkrtest
+Source: CRAN
+Version: 0.4-7
+Hash: f195c3a0f527f69c491569c5cbaaf1db
+Requires: lme4
 
 Package: pkgconfig
 Source: CRAN
@@ -356,6 +429,23 @@ Source: CRAN
 Version: 0.2.3
 Hash: d741f262ed1b74543e33c5426a497996
 Requires: magrittr, rlang, tibble
+
+Package: quantreg
+Source: CRAN
+Version: 5.33
+Hash: 30421e83e9d36563250019b6b2adafce
+Requires: MatrixModels, SparseM
+
+Package: randomForest
+Source: CRAN
+Version: 4.6-12
+Hash: b37274857316c7b9431cc7f72aaffb77
+
+Package: ranger
+Source: CRAN
+Version: 0.8.0
+Hash: 65dd5a047aee4f26eec468f81bfb8401
+Requires: Rcpp, RcppEigen
 
 Package: readr
 Source: CRAN

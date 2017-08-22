@@ -19,15 +19,16 @@ The references for each of them can be found in the bibliography at the end.
 
 ```{r libraries}
 # Load all the project packages
-library("knitr")
-library("kableExtra")
-library("bibtex")
-library("tidyverse")
-library("forcats")
-library("lubridate")
-library("stringr")
-library("ggpubr")
-library("broom")
+library(knitr)
+library(kableExtra)
+library(bibtex)
+library(tidyverse)
+library(forcats)
+library(lubridate)
+library(stringr)
+library(ggpubr)
+library(broom)
+library(caret)
 ```
 
 ```{r init, include=FALSE}
@@ -87,7 +88,7 @@ dataset <- dataset %>%
          ticket_number   = Ticket,      # ticket number 
          ticket_fare     = Fare,        # price of the tickets  
          cabin_number    = Cabin,       # cabin number
-         embark_port     = Embarked,    # embarcation port
+         embark_port     = Embarked,    # embarkment port
          survived        = Survived,    # survival - output targer
          train)                         # is the data from training or test
 ```
@@ -258,13 +259,136 @@ common <- c("Master", "Miss", "Mlle", "Mme", "Mr", "Mrs", "Ms")
 dataset <- dataset %>% 
   mutate(category = ifelse(title %in% common, "common", "special"))
 
+table(dataset$category, dataset$train)
+
 chisq.test(dataset$category, dataset$train, correct = TRUE)
 ggplot(data = dataset) +
-  geom_mosaic(aes(x = product(category, train), fill = factor(category)), na.rm = TRUE)
+  geom_mosaic(aes(x = product(category, train),
+              fill = factor(category)), na.rm = TRUE)
 ```
 Again the comparison between training and testing is done with a chisquare and
 a mosaic plot. We cannot shed light on a significant difference between the two
 in regard of that new variable.
+
+## Ticket class
+
+The *ticket_class* variable could be one of 1 to 3. We will explore it in the 
+same way we did the familly size. Note that there is no missing value here.
+
+```{r expl-ticket_class}
+dataset %>%
+  violin_compare("ticket_class")
+```
+
+Once again no significative differences and the plots have the same overall shape.
+
+## Ticket fare
+
+The price of the tickets will be a problem. There is a missing value and
+a lot of zeros. Let's take a look.
+
+```{r expl-ticket_fare}
+range(dataset$ticket_fare, na.rm = TRUE)
+
+violin_compare(dataset, "ticket_fare")
+```
+So there is a lot of free ticket it seems. But at least the repartition between
+test and train is good :) .
+
+## Embarkment port
+
+Another categorical variable so table, chisquared and mosaic :
+
+```{r embark}
+table(dataset$embark_port, dataset$train)
+
+chisq.test(dataset$embark_port, dataset$train, correct = TRUE)
+
+ggplot(data = dataset) +
+  geom_mosaic(aes(x = product(embark_port, train), 
+              fill = factor(embark_port)), na.rm = TRUE)
+```
+
+Here we have a significative difference ! Anyway the number of passenger from 
+each port is big enough so it will not be much of a problem.
+
+## Age 
+
+For the last continuous variable we won't change our habits !
+
+```{r age}
+range(dataset$age, na.rm = TRUE)
+
+violin_compare(dataset, "age")
+```
+
+There is no significative mean difference and the distribution is not greatly
+different. That's a wrap !
+
+
+# Missing values
+
+We begin by looking at the number of missing values :
+
+```{r missings}
+map_df(dataset, function(x) {sum(is.na(x))}) %>% 
+  gather(variable, missing) %>%
+  arrange(desc(missing))
+```
+
+# Prediction
+
+Spliting the data :
+
+```{r split}
+train <- dataset %>%
+  filter(train == TRUE) %>%
+  select(-train)
+
+test <- dataset %>%
+  filter(train == FALSE) %>%
+  select(-train)
+```
+
+## Random forest
+
+```{r random-forest}
+train$age[is.na(train$age)] <- median(train$age, na.rm = TRUE)
+model <- train(factor(survived) ~ ticket_class + 
+                                  ticket_fare + 
+                                  category +
+                                  sex +
+                                  family_size +
+                                  family_horiz +
+                                  family_vert +
+                                  age,
+               data = train, 
+               method = "rf",
+               tuneLength = 5,
+               #preProcess = "medianImpute",
+               trControl = trainControl(
+                 method = "cv", number = 10,
+               #  summaryFunction = twoClassSummary,
+               #  classProbs = TRUE,
+                 repeats = 5, verboseIter = TRUE))
+
+model 
+
+p_prob <- predict(model, train, type = "prob")
+p_raw <- predict(model, train, type = "raw")
+
+confusionMatrix(p_raw, train$survived)
+
+test_ans <- read_csv("data/raw/gender_submission.csv") %>%
+  select(passenger_id = PassengerId, survived = Survived)
+
+test$age[is.na(test$age)] <- median(test$age, na.rm = TRUE)
+test$ticket_fare[is.na(test$ticket_fare)] <- median(test$ticket_fare, na.rm = TRUE)
+
+test_p <- predict(model, test, type = "raw")
+
+confusionMatrix(test_p, test_ans$survived)
+```
 
 <!-- biliography -->
 ```{r child="assets/citations.Rmd" }
