@@ -359,9 +359,15 @@ test <- dataset %>%
 
 ```{r random-forest}
 ######################### mettre les imputations en dehors
+<<<<<<< HEAD
 
 start_time <- Sys.time()
 
+=======
+
+start_time <- Sys.time()
+
+>>>>>>> 792644148ffb1c9e054a5a4cf9096c475fb48705
 # initiate the multicore
 cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
 registerDoParallel(cluster)
@@ -413,6 +419,7 @@ test_p <- predict(model, test, type = "raw")
 confusionMatrix(test_p, test_ans$survived)
 ```
 
+<<<<<<< HEAD
 ```{r gbm}
 ######################### mettre les imputations en dehors
 
@@ -469,6 +476,8 @@ test_p <- predict(model, test, type = "raw")
 confusionMatrix(test_p, test_ans$survived)
 ```
 
+=======
+>>>>>>> 792644148ffb1c9e054a5a4cf9096c475fb48705
 <!-- biliography -->
 ```{r child="assets/citations.Rmd" }
 ```
