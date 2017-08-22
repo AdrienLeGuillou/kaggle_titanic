@@ -155,6 +155,12 @@ Source: CRAN
 Version: 0.6.12
 Hash: e53fb8c58673df868183697e39a6a4d6
 
+Package: doParallel
+Source: CRAN
+Version: 1.0.10
+Hash: df91a7abfa938c06ad87b9a2b9269adb
+Requires: foreach, iterators
+
 Package: dplyr
 Source: CRAN
 Version: 0.7.2

@@ -27,8 +27,11 @@ library(forcats)
 library(lubridate)
 library(stringr)
 library(ggpubr)
+library(ggmosaic)
 library(broom)
 library(caret)
+library(parallel)
+library(doParallel)
 ```
 
 ```{r init, include=FALSE}
@@ -350,6 +353,13 @@ test <- dataset %>%
   select(-train)
 ```
 
+## Initiate parallele
+
+```{r parallel}
+cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
+registerDoParallel(cluster)
+```
+
 ## Random forest
 
 ```{r random-forest}
@@ -368,6 +378,7 @@ model <- train(factor(survived) ~ ticket_class +
                #preProcess = "medianImpute",
                trControl = trainControl(
                  method = "cv", number = 10,
+                 allowParallel = TRUE,
                #  summaryFunction = twoClassSummary,
                #  classProbs = TRUE,
                  repeats = 5, verboseIter = TRUE))
@@ -388,6 +399,13 @@ test$ticket_fare[is.na(test$ticket_fare)] <- median(test$ticket_fare, na.rm = TR
 test_p <- predict(model, test, type = "raw")
 
 confusionMatrix(test_p, test_ans$survived)
+```
+
+## Stop parallel
+
+```{r parallel_close}
+stopCluster(cluster)
+registerDoSEQ()
 ```
 
 <!-- biliography -->
