@@ -42,7 +42,8 @@ make_biblio()
 
 ## Read the data
 
-Now that the libraries are loaded let's read the date from the CSV's and bind them together.
+Now that the libraries are loaded let's read the date from the CSV's and bind 
+them together.
 I add a "train" variable to distinguish the training from the testing data.
 
 ```{r read_data}
@@ -57,9 +58,12 @@ dataset <- read_csv("data/raw/test.csv") %>%
 
 # Dataset exploration and feature ingineering
 
-In here I will describe and explore the data, see if some feature engineering can be done and make sure that the training and test data are comparable.
+In here I will describe and explore the data, see if some feature engineering 
+can be done and make sure that the training and test data are comparable.
+I will not look at the *survived* variable for now.
 
-Glimpse is a nice way to get a sense of the data as well as checking if the import was correct.
+Glimpse is a nice way to get a sense of the data as well as checking if the 
+import was correct.
 
 ```{r general_exploration}
 glimpse(dataset)
@@ -90,7 +94,8 @@ dataset <- dataset %>%
 
 ## Variable exploration
 
-Now that we have a global idea of the data let's explore the variables more in detail.
+Now that we have a global idea of the data let's explore the variables more 
+in detail.
 
 I will define a standard plot plus mean comparison :
 
@@ -151,7 +156,8 @@ Now to explore these three variables.
   violin_compare(dataset, "family_size")
 ```
 
-For these three variable there is no significative difference in the means and the distribution seems similar between the test and train dataset.
+For these three variable there is no significative difference in the means 
+and the distribution seems similar between the test and train dataset.
 
 ## Cabin's deck
 
@@ -170,18 +176,32 @@ dataset %>%
 ```
 
 
-Using the full cabin number when available is meaningless. But from it I can extract the deck.
+Using the full cabin number when available is meaningless. But from it I can 
+extract the deck.
 Warnings :  
 
 * Some passengers have several cabin number but all on the same deck 
-* Some cabin numbers begin with "F" then a regular number but it seems it correspond to cabin on the F deck
+* Some cabin numbers begin with "F" then a regular number but it seems it 
+  correspond to cabin on the F deck
 
 So for my purpose I will extract the first chararcter of the 'cabin_number'
 
 ```{r deck}
 dataset <- dataset %>%
   mutate(deck = str_sub(cabin_number, 1, 1))
+
+table(dataset$deck, dataset$train)
+
+chisq.test(dataset$deck, dataset$train, correct = TRUE)
+
+ggplot(data = dataset) +
+  geom_mosaic(aes(x = product(deck, train), fill = factor(deck)), na.rm = TRUE)
 ```
+Here I performed a chisquare Test to assess a possible difference in the deck 
+distribution then a mosaic plot to illustrate.
+The test is unable to show a bias between the two distribution so we will not 
+take special action on this variable.
+
 
 ## Names
 
@@ -190,9 +210,11 @@ The name variable contains a lot of information :
 * last name
 * title
 * first name (often the husband one if maried) 
-* maiden name between parenthesis (the distinction between first name and maiden family name is not obvious)
+* maiden name between parenthesis (the distinction between first name and 
+  maiden family name is not obvious)
 * surname between double quotes
-* surname between parenthesis and double quotes (it seems to correspond to more wealthy people)
+* surname between parenthesis and double quotes (it seems to correspond to more 
+  wealthy people)
   
 Because of the wide variety of information let's just keep those :
 
@@ -207,9 +229,42 @@ dataset <- dataset %>%
                         str_extract("[A-Z][A-Z 'a-z]*"),
          title        = str_extract(name, ", .+[.]") %>%
                         str_extract("[A-Z][A-Z 'a-z]*"),
-         surname_rich = !is.na(str_extract(name, "\\(\".*\"\\)")),
-         surname_poor = !is.na(str_extract(name, "\".*\"")) & !surname_rich)
+         surname      = ifelse(!is.na(str_extract(name, "\\(\".*\"\\)")),
+                               "formal",
+                               ifelse(!is.na(str_extract(name, "\".*\"")),
+                                      "informal",
+                                      NA)))
 ```
+
+```{r titles}
+table(dataset$title, dataset$train)
+```
+We can see that there is a large number of different titles. They can represent
+several things :
+
+* the mark of nobility : sir, don, jonkheer...
+* the type of profession : dr, reverend, capt, col...
+* the age : master and miss for the children, Mr and Mrs for the adults
+* the sexe : sir, lady, etc...
+
+I want to remove the information we already have on other variables. So I will
+normalise the titles to only get an information on social class and profession.
+
+Because there is only a few occurence of the special titles I will simply create
+a new variable *category* with *common* and *special* as levels.
+
+```{r category}
+common <- c("Master", "Miss", "Mlle", "Mme", "Mr", "Mrs", "Ms")
+dataset <- dataset %>% 
+  mutate(category = ifelse(title %in% common, "common", "special"))
+
+chisq.test(dataset$category, dataset$train, correct = TRUE)
+ggplot(data = dataset) +
+  geom_mosaic(aes(x = product(category, train), fill = factor(category)), na.rm = TRUE)
+```
+Again the comparison between training and testing is done with a chisquare and
+a mosaic plot. We cannot shed light on a significant difference between the two
+in regard of that new variable.
 
 <!-- biliography -->
 ```{r child="assets/citations.Rmd" }

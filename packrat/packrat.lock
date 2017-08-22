@@ -9,6 +9,11 @@ Source: CRAN
 Version: 1.62.0-1
 Hash: 14dfb3e8ffe20996118306ff4de1fab2
 
+Package: NHANES
+Source: CRAN
+Version: 2.1.0
+Hash: 7c378a019e93c61e61064709a771eb2c
+
 Package: R6
 Source: CRAN
 Version: 2.2.2
@@ -90,10 +95,21 @@ Version: 0.8.0
 Hash: 1cc300ace37bbec3c7d881fdbb7ff4f5
 Requires: ggplot2, gtable, plyr
 
+Package: crosstalk
+Source: CRAN
+Version: 1.0.0
+Hash: c13adea5906fbe2becfcb5f843b26749
+Requires: R6, ggplot2, htmltools, jsonlite, lazyeval, shiny
+
 Package: curl
 Source: CRAN
 Version: 2.8.1
 Hash: 5a3f385f21add1e944b93b3cd9ce8b48
+
+Package: data.table
+Source: CRAN
+Version: 1.10.4
+Hash: 2c7c47ccb40d01c7b214c8eff818108d
 
 Package: dichromat
 Source: CRAN
@@ -123,6 +139,13 @@ Source: CRAN
 Version: 0.2.0
 Hash: e5a3b0b96a39f5581467b0c6366f7408
 Requires: magrittr, tibble
+
+Package: ggmosaic
+Source: CRAN
+Version: 0.1.2
+Hash: 60e7b1efb522afffcaa12a7a888815e9
+Requires: NHANES, dplyr, ggplot2, gridExtra, plotly, productplots,
+    purrr, tidyr
 
 Package: ggplot2
 Source: CRAN
@@ -177,6 +200,11 @@ Version: 1.1.0
 Hash: d91bd77c2b46f513b36976866239bb62
 Requires: Rcpp, forcats, hms, readr, tibble
 
+Package: hexbin
+Source: CRAN
+Version: 1.27.1
+Hash: 378383b2c37556649fd6b2ee0be7e2a5
+
 Package: highr
 Source: CRAN
 Version: 0.6
@@ -192,6 +220,18 @@ Source: CRAN
 Version: 0.3.6
 Hash: 5b070a04ef8df1953544873db1c5896e
 Requires: Rcpp, digest
+
+Package: htmlwidgets
+Source: CRAN
+Version: 0.9
+Hash: 7514f6ea9f3bef6d9b6c945095275302
+Requires: htmltools, jsonlite, yaml
+
+Package: httpuv
+Source: CRAN
+Version: 1.3.5
+Hash: 2cc5284565b71276d1faf3d5c043fe4e
+Requires: Rcpp
 
 Package: httr
 Source: CRAN
@@ -285,11 +325,25 @@ Source: CRAN
 Version: 0.1-1
 Hash: fb19215402e2d9f1c7f803dcaa806fc2
 
+Package: plotly
+Source: CRAN
+Version: 4.7.1
+Hash: 18d2de809bf346363cd4ee7a587d58bf
+Requires: RColorBrewer, base64enc, crosstalk, data.table, digest,
+    dplyr, ggplot2, hexbin, htmltools, htmlwidgets, httr, jsonlite,
+    lazyeval, magrittr, purrr, scales, tibble, tidyr, viridisLite
+
 Package: plyr
 Source: CRAN
 Version: 1.8.4
 Hash: 8fbaff6962e3421b5c9652eebae36159
 Requires: Rcpp
+
+Package: productplots
+Source: CRAN
+Version: 0.1.1
+Hash: 90c808ae99d75e44691d85970de2e720
+Requires: ggplot2, plyr
 
 Package: psych
 Source: CRAN
@@ -362,6 +416,18 @@ Version: 0.3-1
 Hash: 367275e3dcdd208339e131c7a41bec56
 Requires: stringr
 
+Package: shiny
+Source: CRAN
+Version: 1.0.4
+Hash: bb780de024f905a7fcac8a45e6cce14a
+Requires: R6, digest, htmltools, httpuv, jsonlite, mime, sourcetools,
+    xtable
+
+Package: sourcetools
+Source: CRAN
+Version: 0.1.6
+Hash: 226d56d7469587da40b0f96180e711b4
+
 Package: stringi
 Source: CRAN
 Version: 1.1.5
@@ -393,11 +459,21 @@ Requires: broom, dplyr, forcats, ggplot2, haven, hms, httr, jsonlite,
     lubridate, magrittr, modelr, purrr, readr, readxl, rvest, stringr,
     tibble, tidyr, xml2
 
+Package: viridisLite
+Source: CRAN
+Version: 0.2.0
+Hash: 10f0c25af3dc84eaae10f5854f47efdb
+
 Package: xml2
 Source: CRAN
 Version: 1.1.1
 Hash: b326a762ddb04eef605cc88987fa71fb
 Requires: BH, Rcpp
+
+Package: xtable
+Source: CRAN
+Version: 1.8-2
+Hash: 7293235cfcc14cdff1ce7fd1a0212031
 
 Package: yaml
 Source: CRAN
