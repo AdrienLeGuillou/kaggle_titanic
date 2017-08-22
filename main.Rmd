@@ -78,8 +78,8 @@ dataset <- dataset %>%
          ticket_class    = Pclass,      # is the ticket 1st, 2nd or 3rd class
          sex             = Sex,         # sexe
          age             = Age,         # age
-         family_horiz   = SibSp,       # number of family members on the same level (siblings or spouse)
-         family_vert    = Parch,       # number of family members a level away (children or parents)
+         family_horiz    = SibSp,       # number of family members on the same level (siblings or spouse)
+         family_vert     = Parch,       # number of family members a level away (children or parents)
          ticket_number   = Ticket,      # ticket number 
          ticket_fare     = Fare,        # price of the tickets  
          cabin_number    = Cabin,       # cabin number
@@ -88,9 +88,20 @@ dataset <- dataset %>%
          train)                         # is the data from training or test
 ```
 
-## One by one variable exploration
+## Variable exploration
 
 Now that we have a global idea of the data let's explore the variables more in detail.
+
+I will define a standard plot plus mean comparison :
+
+```{r violin_plot}
+# simple violin plot plus mean comparison
+violin_compare <- function(data, var, method = "t.test") {
+  ggviolin(data = data, x = "train", y = var, 
+    fill = "train") +
+  stat_compare_means(method = method)
+}
+```
 
 ### Passenger_id
 
@@ -104,14 +115,16 @@ dataset %>%
        str_c(collapse = "-") %>%
        tidy() %>%
        select(range = x)
-     ) %>%
-  kable()
+  ) %>%
+  kable() %>%
+  kable_styling(full_width = FALSE)
 ```
+
 
 This variable does not contains information usefull for the task at hand.
 Let's move on.
 
-### family
+### Family
 
 We have two variables relative to the family :
 
@@ -131,15 +144,31 @@ dataset <- dataset %>%
 Now to explore these three variables.
 
 ```{r expl-family}
-dataset %>%
-  select(train, family_horiz, family_vert, family_size) %>%
-  ggviolin(x = "train", y = "family_size", 
-           fill = "train",
-           add = "boxplot", add.params = list(fill = "white"))
-           # add comparison on the graph 
+  violin_compare(dataset, "family_vert")
+
+  violin_compare(dataset, "family_horiz")
+
+  violin_compare(dataset, "family_size")
 ```
 
+For these three variable there is no significative difference in the means and the distribution seems similar between the test and train dataset.
+
 ## Cabin's deck
+
+As we can see in the glimpse most cabin number is not available.
+Only `r sum(!is.na(dataset$cabin_number))` passenger have one.
+
+Here is the number of passenger with a cabin number for the test and train data : 
+
+```{r expl-cabin}
+dataset %>%
+  group_by(train) %>%
+  summarise(
+    number = sum(!is.na(cabin_number))) %>%
+  kable() %>%
+  kable_styling(full_width = FALSE)
+```
+
 
 Using the full cabin number when available is meaningless. But from it I can extract the deck.
 Warnings :  
