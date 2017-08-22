@@ -1,5 +1,5 @@
 ---
 nocite: |
-  @base, @bibtex, @bindrcpp, @broom, @caret, @doParallel, @dplyr, @forcats, @foreach, @ggmosaic, @ggplot2, @ggpubr, @iterators, @kableExtra, @knitr, @lattice, @lubridate, @magrittr, @nvimcom, @parallel, @productplots, @purrr, @randomForest, @readr, @rmarkdown, @stringr, @tibble, @tidyr, @tidyverse
+  @base, @bibtex, @broom, @caret, @doParallel, @dplyr, @forcats, @foreach, @gbm, @ggmosaic, @ggplot2, @ggpubr, @iterators, @kableExtra, @knitr, @lattice, @lubridate, @magrittr, @nvimcom, @parallel, @productplots, @purrr, @ranger, @readr, @splines, @stringr, @survival, @tibble, @tidyr, @tidyverse
 ...
 

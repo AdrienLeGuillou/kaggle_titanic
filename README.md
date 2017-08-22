@@ -1,16 +1,10 @@
-## Synopsis
+# Titanic machine learning from a disaster
 
-Basic skeleton for my data science projects
+This is my take a the kaggle competion on the Titanic data
 
-## Motivation
+## To Do
 
-I needed a way to organise all my data science projects in a consistent way
+* Separate the imputation from the models
+* Test and tune several models
+* Maybe put all the data munging in a simple R file and do the writting after
 
-## Description
-
-Will be sent to git only the files needed to produce the report and not the reports files themselves.
-All data will be stored separatly to allow secure and encrypted storage.
-
-## Aknowledgement
-
-This setup was greatly inspired by Joris Muller's https://github.com/jomuller/empty_project and his workflow description.
