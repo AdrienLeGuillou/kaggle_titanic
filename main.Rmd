@@ -19,21 +19,21 @@ The references for each of them can be found in the bibliography at the end.
 
 ```{r libraries}
 # Load all the project packages
-library(knitr)
-library(kableExtra)
-library(bibtex)
-library(tidyverse)
-library(forcats)
-library(lubridate)
-library(stringr)
-library(ggpubr)
-library(ggmosaic)
-library(broom)
-library(caret)
-library(ranger)
-library(gbm)
-library(parallel)
-library(doParallel)
+library("knitr")
+library("kableExtra")
+library("bibtex")
+library("tidyverse")
+library("forcats")
+library("lubridate")
+library("stringr")
+library("ggpubr")
+library("ggmosaic")
+library("broom")
+library("caret")
+library("ranger")
+library("gbm")
+library("parallel")
+library("doParallel")
 ```
 
 ```{r init, include=FALSE}
