@@ -53,50 +53,51 @@ them together.
 I add a "train" variable to distinguish the training from the testing data.
 
 ```{r read_data}
-dataset <- read_csv("data/raw/train.csv") %>%
-  mutate(train = TRUE)
+dataset <- read_csv("data/train.csv") %>%
+  mutate(set = "train")
 
-dataset <- read_csv("data/raw/test.csv") %>%
-  mutate(train = FALSE,
+dataset <- read_csv("data/test.csv") %>%
+  mutate(set = "test",
          Survived = NA) %>%
   bind_rows(dataset)
 ```
 
 # Dataset exploration and feature ingineering
 
-In here I will describe and explore the data, see if some feature engineering 
-can be done and make sure that the training and test data are comparable.
-I will not look at the *survived* variable for now.
-
-Glimpse is a nice way to get a sense of the data as well as checking if the 
-import was correct.
-
 ```{r general_exploration}
 glimpse(dataset)
 ```
-There is 12 variables plus the "train" variable I added.
+There is 12 variables plus the "set" variable I added.
 
 I will rename the columns following my personnal guidelines:
 
 * snake_case
 * somewhat logical names
 
+and reorder the variable.
+
 ```{r rename_columns}
 dataset <- dataset %>%
   select(passenger_id    = PassengerId, # passenger identifier in the dataset
          name            = Name,        # name of the passenger
-         ticket_class    = Pclass,      # is the ticket 1st, 2nd or 3rd class
          sex             = Sex,         # sexe
          age             = Age,         # age
          family_horiz    = SibSp,       # number of family members on the same level (siblings or spouse)
          family_vert     = Parch,       # number of family members a level away (children or parents)
-         ticket_number   = Ticket,      # ticket number 
-         ticket_fare     = Fare,        # price of the tickets  
          cabin_number    = Cabin,       # cabin number
+         ticket_number   = Ticket,      # ticket number 
+         ticket_class    = Pclass,      # is the ticket 1st, 2nd or 3rd class
+         ticket_fare     = Fare,        # price of the ticket  
          embark_port     = Embarked,    # embarkment port
          survived        = Survived,    # survival - output targer
-         train)                         # is the data from training or test
+         set)                         # is the data from training or test
+
+glimpse(dataset) # glimpse again to see the changes
 ```
+
+The variables `Passenger_id`, `name`, `sexe`, `cabin_number`, `ticket_number`,
+`ticket_class` and `embark_port` are categorical and will need to be 
+transformed correctly if we want to use them for prediction.
 
 ## Variable exploration
 
