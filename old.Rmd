@@ -1,0 +1,373 @@
+
+## Variable exploration
+
+Now that we have a global idea of the data let's explore the variables more 
+in detail.
+
+I will define a standard plot plus mean comparison :
+
+```{r violin_plot}
+# simple violin plot plus mean comparison
+violin_compare <- function(data, var, method = "t.test") {
+  ggviolin(data = data, x = "train", y = var, 
+    fill = "train") +
+  stat_compare_means(method = method)
+}
+```
+
+### Passenger_id
+
+```{r expl-passenger_id}
+summary(dataset$passenger_id)
+
+dataset %>% 
+  group_by(train) %>%
+  do(
+     range(.$passenger_id) %>% 
+       str_c(collapse = "-") %>%
+       tidy() %>%
+       select(range = x)
+  ) %>%
+  kable() %>%
+  kable_styling(full_width = FALSE)
+```
+
+
+This variable does not contains information usefull for the task at hand.
+Let's move on.
+
+### Family
+
+We have two variables relative to the family :
+
+* family_horiz
+* family_vert
+
+With that we can compute a third one : family_size.
+The family size is the number of sibbling / spouse (horizontal relationship) 
+plus the number of children / parents (vertical relationship) 
+plus the passenger himself
+
+```{r family_size}
+dataset <- dataset %>%
+  mutate(family_size = family_horiz + family_vert + 1)
+```
+
+Now to explore these three variables.
+
+```{r expl-family}
+  violin_compare(dataset, "family_vert")
+
+  violin_compare(dataset, "family_horiz")
+
+  violin_compare(dataset, "family_size")
+```
+
+For these three variable there is no significative difference in the means 
+and the distribution seems similar between the test and train dataset.
+
+## Cabin's deck
+
+As we can see in the glimpse most cabin number is not available.
+Only `r sum(!is.na(dataset$cabin_number))` passenger have one.
+
+Here is the number of passenger with a cabin number for the test and train data : 
+
+```{r expl-cabin}
+dataset %>%
+  group_by(train) %>%
+  summarise(
+    number = sum(!is.na(cabin_number))) %>%
+  kable() %>%
+  kable_styling(full_width = FALSE)
+```
+
+
+Using the full cabin number when available is meaningless. But from it I can 
+extract the deck.
+Warnings :  
+
+* Some passengers have several cabin number but all on the same deck 
+* Some cabin numbers begin with "F" then a regular number but it seems it 
+  correspond to cabin on the F deck
+
+So for my purpose I will extract the first chararcter of the 'cabin_number'
+
+```{r deck}
+dataset <- dataset %>%
+  mutate(deck = str_sub(cabin_number, 1, 1))
+
+table(dataset$deck, dataset$train)
+
+chisq.test(dataset$deck, dataset$train, correct = TRUE)
+
+ggplot(data = dataset) +
+  geom_mosaic(aes(x = product(deck, train), fill = factor(deck)), na.rm = TRUE)
+```
+Here I performed a chisquare Test to assess a possible difference in the deck 
+distribution then a mosaic plot to illustrate.
+The test is unable to show a bias between the two distribution so we will not 
+take special action on this variable.
+
+
+## Names
+
+The name variable contains a lot of information :
+
+* last name
+* title
+* first name (often the husband one if maried) 
+* maiden name between parenthesis (the distinction between first name and 
+  maiden family name is not obvious)
+* surname between double quotes
+* surname between parenthesis and double quotes (it seems to correspond to more 
+  wealthy people)
+  
+Because of the wide variety of information let's just keep those :
+
+* last name
+* title
+* presence of a surname 
+* presence of a "formal" surname
+
+```{r names}
+dataset <- dataset %>%
+  mutate(last_name    = str_extract(name, "^.+,") %>%
+                        str_extract("[A-Z][A-Z 'a-z]*"),
+         title        = str_extract(name, ", .+[.]") %>%
+                        str_extract("[A-Z][A-Z 'a-z]*"),
+         surname      = ifelse(!is.na(str_extract(name, "\\(\".*\"\\)")),
+                               "formal",
+                               ifelse(!is.na(str_extract(name, "\".*\"")),
+                                      "informal",
+                                      NA)))
+```
+
+```{r titles}
+table(dataset$title, dataset$train)
+```
+We can see that there is a large number of different titles. They can represent
+several things :
+
+* the mark of nobility : sir, don, jonkheer...
+* the type of profession : dr, reverend, capt, col...
+* the age : master and miss for the children, Mr and Mrs for the adults
+* the sexe : sir, lady, etc...
+
+I want to remove the information we already have on other variables. So I will
+normalise the titles to only get an information on social class and profession.
+
+Because there is only a few occurence of the special titles I will simply create
+a new variable *category* with *common* and *special* as levels.
+
+```{r category}
+common <- c("Master", "Miss", "Mlle", "Mme", "Mr", "Mrs", "Ms")
+dataset <- dataset %>% 
+  mutate(category = ifelse(title %in% common, "common", "special"))
+
+table(dataset$category, dataset$train)
+
+chisq.test(dataset$category, dataset$train, correct = TRUE)
+ggplot(data = dataset) +
+  geom_mosaic(aes(x = product(category, train),
+              fill = factor(category)), na.rm = TRUE)
+```
+Again the comparison between training and testing is done with a chisquare and
+a mosaic plot. We cannot shed light on a significant difference between the two
+in regard of that new variable.
+
+## Ticket class
+
+The *ticket_class* variable could be one of 1 to 3. We will explore it in the 
+same way we did the familly size. Note that there is no missing value here.
+
+```{r expl-ticket_class}
+dataset %>%
+  violin_compare("ticket_class")
+```
+
+Once again no significative differences and the plots have the same overall shape.
+
+## Ticket fare
+
+The price of the tickets will be a problem. There is a missing value and
+a lot of zeros. Let's take a look.
+
+```{r expl-ticket_fare}
+range(dataset$ticket_fare, na.rm = TRUE)
+
+violin_compare(dataset, "ticket_fare")
+```
+So there is a lot of free ticket it seems. But at least the repartition between
+test and train is good :) .
+
+## Embarkment port
+
+Another categorical variable so table, chisquared and mosaic :
+
+```{r embark}
+table(dataset$embark_port, dataset$train)
+
+chisq.test(dataset$embark_port, dataset$train, correct = TRUE)
+
+ggplot(data = dataset) +
+  geom_mosaic(aes(x = product(embark_port, train), 
+              fill = factor(embark_port)), na.rm = TRUE)
+```
+
+Here we have a significative difference ! Anyway the number of passenger from 
+each port is big enough so it will not be much of a problem.
+
+## Age 
+
+For the last continuous variable we won't change our habits !
+
+```{r age}
+range(dataset$age, na.rm = TRUE)
+
+violin_compare(dataset, "age")
+```
+
+There is no significative mean difference and the distribution is not greatly
+different. That's a wrap !
+
+
+# Missing values
+
+We begin by looking at the number of missing values :
+
+```{r missings}
+map_df(dataset, function(x) {sum(is.na(x))}) %>% 
+  gather(variable, missing) %>%
+  arrange(desc(missing))
+```
+
+# Prediction
+
+Spliting the data :
+
+```{r split}
+train <- dataset %>%
+  filter(train == TRUE) %>%
+  select(-train)
+
+test <- dataset %>%
+  filter(train == FALSE) %>%
+  select(-train)
+```
+
+## Random forest
+
+```{r random-forest}
+######################### mettre les imputations en dehors
+
+start_time <- Sys.time()
+
+# initiate the multicore
+cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
+registerDoParallel(cluster)
+
+train$age[is.na(train$age)] <- median(train$age, na.rm = TRUE)
+model <- train(factor(survived) ~ ticket_class + 
+                                  ticket_fare + 
+                                  category +
+                                  sex +
+                                  family_size +
+                                  family_horiz +
+                                  family_vert +
+                                  age,
+               data = train, 
+               method = "rf",
+               tuneLength = 5,
+	       tuneGrid = data.frame(mtry = c(2, 4, 8, 12, 16, 20)),
+               #preProcess = "medianImpute",
+               trControl = trainControl(
+                 method = "cv", number = 10,
+                 allowParallel = TRUE,
+               #  summaryFunction = twoClassSummary,
+               #  classProbs = TRUE,
+                 repeats = 5, verboseIter = FALSE))
+
+# stop multicore
+stopCluster(cluster)
+registerDoSEQ()
+
+end_time <- Sys.time()
+
+duration <- end_time - start_time
+
+model 
+
+p_prob <- predict(model, train, type = "prob")
+p_raw <- predict(model, train, type = "raw")
+
+confusionMatrix(p_raw, train$survived)
+
+test_ans <- read_csv("data/raw/gender_submission.csv") %>%
+  select(passenger_id = PassengerId, survived = Survived)
+
+test$age[is.na(test$age)] <- median(test$age, na.rm = TRUE)
+test$ticket_fare[is.na(test$ticket_fare)] <- median(test$ticket_fare, na.rm = TRUE)
+
+test_p <- predict(model, test, type = "raw")
+
+confusionMatrix(test_p, test_ans$survived)
+```
+
+```{r gbm}
+######################### mettre les imputations en dehors
+
+start_time <- Sys.time()
+
+# initiate the multicore
+cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
+registerDoParallel(cluster)
+
+train$age[is.na(train$age)] <- median(train$age, na.rm = TRUE)
+model <- train(factor(survived) ~ ticket_class + 
+                                  ticket_fare + 
+                                  category +
+                                  sex +
+                                  family_size +
+                                  family_horiz +
+                                  family_vert +
+                                  age,
+               data = train, 
+               method = "gbm",
+               #tuneLength = 5,
+	       #tuneGrid = data.frame(mtry = c(2, 4, 8, 12, 16, 20)),
+               #preProcess = "medianImpute",
+               trControl = trainControl(
+                 method = "cv", number = 10,
+                 allowParallel = TRUE,
+               #  summaryFunction = twoClassSummary,
+               #  classProbs = TRUE,
+                 repeats = 5, verboseIter = FALSE))
+
+# stop multicore
+stopCluster(cluster)
+registerDoSEQ()
+
+end_time <- Sys.time()
+
+duration <- end_time - start_time
+
+model 
+
+p_prob <- predict(model, train, type = "prob")
+p_raw <- predict(model, train, type = "raw")
+
+confusionMatrix(p_raw, train$survived)
+
+test_ans <- read_csv("data/raw/gender_submission.csv") %>%
+  select(passenger_id = PassengerId, survived = Survived)
+
+test$age[is.na(test$age)] <- median(test$age, na.rm = TRUE)
+test$ticket_fare[is.na(test$ticket_fare)] <- median(test$ticket_fare, na.rm = TRUE)
+
+test_p <- predict(model, test, type = "raw")
+
+confusionMatrix(test_p, test_ans$survived)
+```
+
+

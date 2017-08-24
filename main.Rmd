@@ -10,11 +10,11 @@ bibliography: references.bib
 
 # Setup
 
-## Introduction
+# Introduction
 
-## Load libraries
+# Load and check data
 
-First of all I load all the library that will be used in this analysis. 
+
 The references for each of them can be found in the bibliography at the end. 
 
 ```{r libraries}
@@ -33,6 +33,7 @@ library("caret")
 library("ranger")
 library("gbm")
 library("parallel")
+library("GGally")
 library("doParallel")
 ```
 
@@ -46,35 +47,36 @@ source("functions/make_biblio.R")
 make_biblio()
 ```
 
-## Read the data
+Once the libraries are loaded it's time for reading the data.
 
-Now that the libraries are loaded let's read the date from the CSV's and bind 
-them together.
-I add a "train" variable to distinguish the training from the testing data.
+I put everything in a single dataframe and add a `set` column to distinguish
+the training from the testing data.
 
-```{r read_data}
-dataset <- read_csv("data/train.csv") %>%
+```{r read_data, message=FALSE}
+dataset <- 
+  read_csv("data/train.csv") %>%
   mutate(set = "train")
 
-dataset <- read_csv("data/test.csv") %>%
+dataset <- 
+  read_csv("data/test.csv") %>%
   mutate(set = "test",
          Survived = NA) %>%
   bind_rows(dataset)
 ```
 
-# Dataset exploration and feature ingineering
+Then we take a glimpse at the data.
 
-```{r general_exploration}
+```{r check}
 glimpse(dataset)
 ```
-There is 12 variables plus the "set" variable I added.
 
-I will rename the columns following my personnal guidelines:
+There is 12 variables plus the "set" variable I added.
+And 1,309 observations.
+
+Now I reorder and rename the columns following these rules:  
 
 * snake_case
 * somewhat logical names
-
-and reorder the variable.
 
 ```{r rename_columns}
 dataset <- dataset %>%
@@ -95,96 +97,99 @@ dataset <- dataset %>%
 glimpse(dataset) # glimpse again to see the changes
 ```
 
-The variables `Passenger_id`, `name`, `sexe`, `cabin_number`, `ticket_number`,
-`ticket_class` and `embark_port` are categorical and will need to be 
-transformed correctly if we want to use them for prediction.
+The variables `name`, `sexe`, `cabin_number`, `ticket_number` and `embark_port`
+are strings and will need to be transformed correctly if we want to use
+them for prediction.
 
-## Variable exploration
+# Missing data and feature engineering
 
-Now that we have a global idea of the data let's explore the variables more 
-in detail.
+First of I will set as factors the variable that I are categorical and that I
+will not modify.
 
-I will define a standard plot plus mean comparison :
-
-```{r violin_plot}
-# simple violin plot plus mean comparison
-violin_compare <- function(data, var, method = "t.test") {
-  ggviolin(data = data, x = "train", y = var, 
-    fill = "train") +
-  stat_compare_means(method = method)
-}
-```
-
-### Passenger_id
-
-```{r expl-passenger_id}
-summary(dataset$passenger_id)
-
-dataset %>% 
-  group_by(train) %>%
-  do(
-     range(.$passenger_id) %>% 
-       str_c(collapse = "-") %>%
-       tidy() %>%
-       select(range = x)
-  ) %>%
-  kable() %>%
-  kable_styling(full_width = FALSE)
-```
-
-
-This variable does not contains information usefull for the task at hand.
-Let's move on.
-
-### Family
-
-We have two variables relative to the family :
-
-* family_horiz
-* family_vert
-
-With that we can compute a third one : family_size.
-The family size is the number of sibbling / spouse (horizontal relationship) 
-plus the number of children / parents (vertical relationship) 
-plus the passenger himself
-
-```{r family_size}
+```{r factoring}
 dataset <- dataset %>%
-  mutate(family_size = family_horiz + family_vert + 1)
+  mutate(sex = factor(sex),
+         ticket_class = factor(ticket_class),
+         survived = factor(survived),
+         set = factor(set))
 ```
 
-Now to explore these three variables.
+## What is missing
 
-```{r expl-family}
-  violin_compare(dataset, "family_vert")
+Dealing with missing values is crucial. I begin by simply counting the number
+of missing values for each variable.
 
-  violin_compare(dataset, "family_horiz")
-
-  violin_compare(dataset, "family_size")
+```{r missings}
+map_df(dataset, function(x) {sum(is.na(x))}) %>% 
+  gather(variable, missing) %>%
+  arrange(desc(missing))
 ```
 
-For these three variable there is no significative difference in the means 
-and the distribution seems similar between the test and train dataset.
+## Ticket fare
 
-## Cabin's deck
+Because there is only one missing value for the `ticket_fare` we can explore it
+directly.
 
-As we can see in the glimpse most cabin number is not available.
-Only `r sum(!is.na(dataset$cabin_number))` passenger have one.
-
-Here is the number of passenger with a cabin number for the test and train data : 
-
-```{r expl-cabin}
+```{r ticket_fare-missing}
 dataset %>%
-  group_by(train) %>%
-  summarise(
-    number = sum(!is.na(cabin_number))) %>%
-  kable() %>%
-  kable_styling(full_width = FALSE)
+  filter(is.na(ticket_fare))
 ```
 
+This passenger is not accompanied by family so price is probably for him alone. 
+We can presume that the ticket fare is correlated with the ticket class and
+the embarkment port.
+I will infere as it's `ticket_fare` the median of price for passenger in
+class 3 who embarked in Southampton. If there were more missing values this 
+simple imputation would not be sufficient because of the several factors that 
+can influence this variable. For exemple the family size.
 
-Using the full cabin number when available is meaningless. But from it I can 
-extract the deck.
+```{r ticket_fare-impute}
+dataset$ticket_fare[is.na(dataset$ticket_fare)] <- 
+  dataset %>%
+  filter(ticket_class == 3,
+         embark_port == "S") %>% 
+  pull(ticket_fare) %>%
+  median(na.rm = TRUE)
+```
+
+## Embarkment port
+
+There is two missing values for the embarkment port. 
+
+```{r embark_port-missing}
+dataset %>%
+  filter(is.na(embark_port)) %>% 
+  select(-family_horiz, -family_vert, -survived)
+```
+
+The two passengers were sharing a cabin and have the same ticket number.
+The ticket cost 80\$ as is a first class.
+
+With this data let's try to infere there embarkment port.
+
+```{r embarkment_port-impute}
+ggboxplot(dataset, x = "embark_port", y = "ticket_fare", 
+          fill = "ticket_class") +
+  geom_hline(aes(yintercept = 80), colour = "red")
+```
+
+The 80\$ price for a first class ticket correspond really well to an embarkment
+at Charbourg. I will put that instead of NA.
+
+```{r embark_port-replace}
+# replace with S
+dataset <- dataset %>%
+  replace_na(list(embark_port = 'C')) %>%
+  mutate(embark_port = factor(embark_port))
+```
+
+## Cabin number
+
+Only `r 1309 - 1014` passenger have a known `cabin_number`. Before dropping 
+that variable let's see if we can extract some information from it.
+
+First I will extract the deck.
+
 Warnings :  
 
 * Some passengers have several cabin number but all on the same deck 
@@ -197,20 +202,32 @@ So for my purpose I will extract the first chararcter of the 'cabin_number'
 dataset <- dataset %>%
   mutate(deck = str_sub(cabin_number, 1, 1))
 
-table(dataset$deck, dataset$train)
-
-chisq.test(dataset$deck, dataset$train, correct = TRUE)
-
-ggplot(data = dataset) +
-  geom_mosaic(aes(x = product(deck, train), fill = factor(deck)), na.rm = TRUE)
+dataset %>%
+  filter(set == "train") %>%
+  ggplot(aes(x = deck, fill = survived, label = ..count..)) +
+    geom_bar(stat = "count", position = "fill") +
+    geom_text(stat = "count", position = position_fill(vjust = 0.5))
 ```
-Here I performed a chisquare Test to assess a possible difference in the deck 
-distribution then a mosaic plot to illustrate.
-The test is unable to show a bias between the two distribution so we will not 
-take special action on this variable.
 
+It seems that the knowing the cabin's number is itself a factor of survival.
+I will just keep a binary variable `cabin_known` then. I leave the `deck` 
+variable there for know. Maybe we'll use it later.
 
-## Names
+```{r cabin}
+dataset <- dataset %>%
+  mutate(cabin_known = !is.na(cabin_number))
+
+dataset %>%
+  filter(set == "train") %>%
+  ggplot(aes(x = cabin_known, fill = survived, label = ..count..)) +
+    geom_bar(stat = "count", position = "fill") +
+    geom_text(stat = "count", position = position_fill(vjust = 0.5))
+```
+
+## Titles and surname
+
+There is a lot of missing data in the `age` and I don't think I have enough 
+information yet to do some proper imputation so we will tackle the names first.
 
 The name variable contains a lot of information :
 
@@ -241,11 +258,15 @@ dataset <- dataset %>%
                                ifelse(!is.na(str_extract(name, "\".*\"")),
                                       "informal",
                                       NA)))
+
+dataset %>%
+  filter(set == "train") %>%
+  ggplot(aes(x = title, fill = survived, label = ..count..)) +
+    geom_bar(stat = "count", position = "fill") +
+    geom_text(stat = "count", position = position_fill(vjust = 0.5)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-```{r titles}
-table(dataset$title, dataset$train)
-```
 We can see that there is a large number of different titles. They can represent
 several things :
 
@@ -255,219 +276,49 @@ several things :
 * the sexe : sir, lady, etc...
 
 I want to remove the information we already have on other variables. So I will
-normalise the titles to only get an information on social class and profession.
+normalise the titles. 
 
-Because there is only a few occurence of the special titles I will simply create
-a new variable *category* with *common* and *special* as levels.
+Because there is only a few occurence of the special titles I will create
+a new variable *category* with *mr*, *mrs*, *miss*, *master* and *other* as
+levels.
+
+I will use a violin plot to confirm what title correspond to what age.
 
 ```{r category}
-common <- c("Master", "Miss", "Mlle", "Mme", "Mr", "Mrs", "Ms")
+ggviolin(data = dataset, x = "title", y = "age", fill = "title",
+         add = "boxplot", add.params = list(fill = "white")) +
+         theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 dataset <- dataset %>% 
-  mutate(category = ifelse(title %in% common, "common", "special"))
+  mutate(category = as_factor(title) %>%
+         # we add the foreign and variant to there group
+           fct_collapse(mrs = c("Mrs", "Mme", "Ms"),
+                        miss = c("Miss", "Mlle")) %>%
+         # we keep only the four more frequent group and lump the rest together
+           fct_lump(n = 4)) 
 
-table(dataset$category, dataset$train)
+# we take a look again at the ages
+ggviolin(data = dataset, x = "category", y = "age", fill = "category",
+         add = "boxplot", add.params = list(fill = "white"))
 
-chisq.test(dataset$category, dataset$train, correct = TRUE)
-ggplot(data = dataset) +
-  geom_mosaic(aes(x = product(category, train),
-              fill = factor(category)), na.rm = TRUE)
-```
-Again the comparison between training and testing is done with a chisquare and
-a mosaic plot. We cannot shed light on a significant difference between the two
-in regard of that new variable.
-
-## Ticket class
-
-The *ticket_class* variable could be one of 1 to 3. We will explore it in the 
-same way we did the familly size. Note that there is no missing value here.
-
-```{r expl-ticket_class}
+# and another look at the survival by category
 dataset %>%
-  violin_compare("ticket_class")
+  filter(set == "train") %>%
+  ggplot(aes(x = category, fill = survived, label = ..count..)) +
+    geom_bar(stat = "count", position = "fill") +
+    geom_text(stat = "count", position = position_fill(vjust = 0.5))
 ```
 
-Once again no significative differences and the plots have the same overall shape.
+## Age
 
-## Ticket fare
+With the titles maybe I can do a better job at infering the ages. 
 
-The price of the tickets will be a problem. There is a missing value and
-a lot of zeros. Let's take a look.
+I will try to examine the relations between `category`, `ticket_class` and 
+`age`.
 
-```{r expl-ticket_fare}
-range(dataset$ticket_fare, na.rm = TRUE)
-
-violin_compare(dataset, "ticket_fare")
-```
-So there is a lot of free ticket it seems. But at least the repartition between
-test and train is good :) .
-
-## Embarkment port
-
-Another categorical variable so table, chisquared and mosaic :
-
-```{r embark}
-table(dataset$embark_port, dataset$train)
-
-chisq.test(dataset$embark_port, dataset$train, correct = TRUE)
-
-ggplot(data = dataset) +
-  geom_mosaic(aes(x = product(embark_port, train), 
-              fill = factor(embark_port)), na.rm = TRUE)
-```
-
-Here we have a significative difference ! Anyway the number of passenger from 
-each port is big enough so it will not be much of a problem.
-
-## Age 
-
-For the last continuous variable we won't change our habits !
-
-```{r age}
-range(dataset$age, na.rm = TRUE)
-
-violin_compare(dataset, "age")
-```
-
-There is no significative mean difference and the distribution is not greatly
-different. That's a wrap !
-
-
-# Missing values
-
-We begin by looking at the number of missing values :
-
-```{r missings}
-map_df(dataset, function(x) {sum(is.na(x))}) %>% 
-  gather(variable, missing) %>%
-  arrange(desc(missing))
-```
-
-# Prediction
-
-Spliting the data :
-
-```{r split}
-train <- dataset %>%
-  filter(train == TRUE) %>%
-  select(-train)
-
-test <- dataset %>%
-  filter(train == FALSE) %>%
-  select(-train)
-```
-
-## Random forest
-
-```{r random-forest}
-######################### mettre les imputations en dehors
-
-start_time <- Sys.time()
-
-# initiate the multicore
-cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
-registerDoParallel(cluster)
-
-train$age[is.na(train$age)] <- median(train$age, na.rm = TRUE)
-model <- train(factor(survived) ~ ticket_class + 
-                                  ticket_fare + 
-                                  category +
-                                  sex +
-                                  family_size +
-                                  family_horiz +
-                                  family_vert +
-                                  age,
-               data = train, 
-               method = "rf",
-               tuneLength = 5,
-	       tuneGrid = data.frame(mtry = c(2, 4, 8, 12, 16, 20)),
-               #preProcess = "medianImpute",
-               trControl = trainControl(
-                 method = "cv", number = 10,
-                 allowParallel = TRUE,
-               #  summaryFunction = twoClassSummary,
-               #  classProbs = TRUE,
-                 repeats = 5, verboseIter = FALSE))
-
-# stop multicore
-stopCluster(cluster)
-registerDoSEQ()
-
-end_time <- Sys.time()
-
-duration <- end_time - start_time
-
-model 
-
-p_prob <- predict(model, train, type = "prob")
-p_raw <- predict(model, train, type = "raw")
-
-confusionMatrix(p_raw, train$survived)
-
-test_ans <- read_csv("data/raw/gender_submission.csv") %>%
-  select(passenger_id = PassengerId, survived = Survived)
-
-test$age[is.na(test$age)] <- median(test$age, na.rm = TRUE)
-test$ticket_fare[is.na(test$ticket_fare)] <- median(test$ticket_fare, na.rm = TRUE)
-
-test_p <- predict(model, test, type = "raw")
-
-confusionMatrix(test_p, test_ans$survived)
-```
-
-```{r gbm}
-######################### mettre les imputations en dehors
-
-start_time <- Sys.time()
-
-# initiate the multicore
-cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
-registerDoParallel(cluster)
-
-train$age[is.na(train$age)] <- median(train$age, na.rm = TRUE)
-model <- train(factor(survived) ~ ticket_class + 
-                                  ticket_fare + 
-                                  category +
-                                  sex +
-                                  family_size +
-                                  family_horiz +
-                                  family_vert +
-                                  age,
-               data = train, 
-               method = "gbm",
-               #tuneLength = 5,
-	       #tuneGrid = data.frame(mtry = c(2, 4, 8, 12, 16, 20)),
-               #preProcess = "medianImpute",
-               trControl = trainControl(
-                 method = "cv", number = 10,
-                 allowParallel = TRUE,
-               #  summaryFunction = twoClassSummary,
-               #  classProbs = TRUE,
-                 repeats = 5, verboseIter = FALSE))
-
-# stop multicore
-stopCluster(cluster)
-registerDoSEQ()
-
-end_time <- Sys.time()
-
-duration <- end_time - start_time
-
-model 
-
-p_prob <- predict(model, train, type = "prob")
-p_raw <- predict(model, train, type = "raw")
-
-confusionMatrix(p_raw, train$survived)
-
-test_ans <- read_csv("data/raw/gender_submission.csv") %>%
-  select(passenger_id = PassengerId, survived = Survived)
-
-test$age[is.na(test$age)] <- median(test$age, na.rm = TRUE)
-test$ticket_fare[is.na(test$ticket_fare)] <- median(test$ticket_fare, na.rm = TRUE)
-
-test_p <- predict(model, test, type = "raw")
-
-confusionMatrix(test_p, test_ans$survived)
+```{r age-missing}
+# see if the data is missing at random or not
+# inspect mice package and rpart
 ```
 
 <!-- biliography -->
