@@ -36,6 +36,8 @@ library("parallel")
 library("GGally")
 library("doParallel")
 library("mice")
+library("randomForest")
+library("e1071")
 ```
 
 ```{r init, include=FALSE}
@@ -363,7 +365,7 @@ package and the `allowParallel = TRUE` option in `caret`.
 
 ```{r}
 durations <- data.frame(model = as.character(),
-                        duration = as.difftime())
+                        duration)
 ```
 
 ## Random Forest
