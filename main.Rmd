@@ -35,6 +35,7 @@ library("gbm")
 library("parallel")
 library("GGally")
 library("doParallel")
+library("mice")
 ```
 
 ```{r init, include=FALSE}
@@ -311,14 +312,171 @@ dataset %>%
 
 ## Age
 
-With the titles maybe I can do a better job at infering the ages. 
+With the titles and the family_size maybe I can do a better job at infering 
+the ages. 
 
-I will try to examine the relations between `category`, `ticket_class` and 
-`age`.
+I will use the mice package following closely what Megan did on here kernel.
 
 ```{r age-missing}
-# see if the data is missing at random or not
-# inspect mice package and rpart
+# the mice package is used to impute the missng ages with a random forest
+mice_model <- dataset %>% 
+  select(age, 
+         sex,
+         family_horiz,
+         family_vert,
+         ticket_class,
+         ticket_fare, 
+         embark_port,
+         set,
+         category) %>%
+  mice(method = 'rf')
+
+mice_output <- complete(mice_model)
+```
+
+Now we explore the density of ages in the original and the imputed dataset.
+
+```{r eval_mice}
+#bind dataset and mice_output and plot the density of age
+dataset %>% 
+  mutate(set = "original") %>% 
+  bind_rows(mice_output %>% 
+    mutate(set = "imputed")) %>% 
+  mutate(set = factor(set)) %>%
+  ggdensity(x = 'age', fill = "set", alpha = 0.5) 
+```
+
+It seems to be okay. Let's use these values.
+
+```{r}
+dataset$age <- mice_output$age
+```
+
+# Prediction
+
+The pre-processing of the data is now complete. It is time for imputation.
+
+I will train several models. Compare there accuracies and the timing spent on 
+training. I will use the `caret` package to have a consistent interface among
+my models. The model computation will be parallelized using the `doParallel` 
+package and the `allowParallel = TRUE` option in `caret`.
+
+```{r}
+durations <- data.frame(model = as.character(),
+                        duration = as.difftime())
+```
+
+## Random Forest
+
+First I train a random forest using the `ranger` package. It is suposed to be
+a more efficient implementation of the random forest algorithm.
+
+Spliting the data :
+
+```{r split-rf}
+train <- dataset %>%
+  filter(set == "train") %>%
+  select(-set)
+
+test <- dataset %>%
+  filter(set == "test") %>%
+  select(-set)
+```
+
+```{r random-forest}
+start_time <- Sys.time()
+
+# initiate the multicore
+cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
+registerDoParallel(cluster)
+
+rf_model <- train(survived ~ sex +
+                          age +
+                          family_horiz +
+                          family_vert +
+                          ticket_class +
+                          ticket_fare +
+                          embark_port +
+                          cabin_known +
+                          category,
+               data = train, 
+               method = "ranger",
+               tuneLength = 10,
+	       #tuneGrid = data.frame(mtry = c(2, 4, 8, 12)),
+               importance = "impurity",
+               trControl = trainControl(
+                 method = "repeatedcv", number = 10,
+                 allowParallel = TRUE,
+                 repeats = 10, verboseIter = TRUE))
+
+# stop multicore
+stopCluster(cluster)
+registerDoSEQ()
+
+end_time <- Sys.time()
+
+durations <- durations %>%
+  rbind(list(model = "random forest", 
+          duration = end_time - start_time))
+
+rf_model 
+```
+```{r}
+p_prob <- predict(rf_model, train, type = "prob")
+p_raw <- predict(rf_model, train, type = "raw")
+
+confusionMatrix(p_raw, train$survived)
+
+test_ans <- read_csv("data/raw/gender_submission.csv") %>%
+  select(passenger_id = PassengerId, survived = Survived)
+
+test$age[is.na(test$age)] <- median(test$age, na.rm = TRUE)
+test$ticket_fare[is.na(test$ticket_fare)] <- median(test$ticket_fare, na.rm = TRUE)
+
+test_p <- predict(rf_model, test, type = "raw")
+
+confusionMatrix(test_p, test_ans$survived)
+```
+
+## GBM
+
+```{r random-forest}
+start_time <- Sys.time()
+
+# initiate the multicore
+cluster <- makeCluster(detectCores() - 1) # convention to leave 1 core for OS
+registerDoParallel(cluster)
+
+gb_model <- train(survived ~ sex +
+                          age +
+                          family_horiz +
+                          family_vert +
+                          ticket_class +
+                          ticket_fare +
+                          embark_port +
+                          cabin_known +
+                          category,
+               data = train, 
+               method = "gbm",
+               tuneLength = 10,
+	       #tuneGrid = data.frame(mtry = c(2, 4, 8, 12)),
+               importance = "impurity",
+               trControl = trainControl(
+                 method = "repeatedcv", number = 10,
+                 allowParallel = TRUE,
+                 repeats = 10, verboseIter = FALSE))
+
+# stop multicore
+stopCluster(cluster)
+registerDoSEQ()
+
+end_time <- Sys.time()
+
+durations <- durations %>%
+  rbind(list(model = "gradient boost", 
+          duration = end_time - start_time))
+
+gb_model 
 ```
 
 <!-- biliography -->
